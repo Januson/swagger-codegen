@@ -1070,6 +1070,7 @@ definitions:
         example: "doggie"
       photoUrls:
         type: array
+        uniqueItems: true
         xml:
           name: photoUrl
           wrapped: true

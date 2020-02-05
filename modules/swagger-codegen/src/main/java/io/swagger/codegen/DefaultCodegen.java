@@ -839,6 +839,7 @@ public class DefaultCodegen {
         typeMapping.put("array", "List");
         typeMapping.put("map", "Map");
         typeMapping.put("List", "List");
+        typeMapping.put("set", "Set");
         typeMapping.put("boolean", "Boolean");
         typeMapping.put("string", "String");
         typeMapping.put("int", "Integer");
@@ -872,6 +873,7 @@ public class DefaultCodegen {
         importMapping.put("Array", "java.util.List");
         importMapping.put("ArrayList", "java.util.ArrayList");
         importMapping.put("List", "java.util.*");
+        importMapping.put("HashSet", "java.util.HashSet");
         importMapping.put("Set", "java.util.*");
         importMapping.put("DateTime", "org.joda.time.*");
         importMapping.put("LocalDateTime", "org.joda.time.*");
@@ -1027,7 +1029,13 @@ public class DefaultCodegen {
         } else if (p instanceof ArrayProperty) {
             ArrayProperty ap = (ArrayProperty) p;
             String inner = getSwaggerType(ap.getItems());
-            return instantiationTypes.get("array") + "<" + inner + ">";
+            String parentType;
+            if (Boolean.TRUE.equals(ap.getUniqueItems())) {
+                parentType = "set";
+            } else {
+                parentType = "array";
+            }
+            return instantiationTypes.get(parentType) + "<" + inner + ">";
         } else {
             return null;
         }
@@ -1379,6 +1387,7 @@ public class DefaultCodegen {
         if (model instanceof ArrayModel) {
             ArrayModel am = (ArrayModel) model;
             ArrayProperty arrayProperty = new ArrayProperty(am.getItems());
+            arrayProperty.setUniqueItems(am.getUniqueItems());
             m.isArrayModel = true;
             m.arrayModelType = fromProperty(name, arrayProperty).complexType;
             addParentContainer(m, name, arrayProperty);
@@ -1856,7 +1865,12 @@ public class DefaultCodegen {
         if (p instanceof ArrayProperty) {
             property.isContainer = true;
             property.isListContainer = true;
-            property.containerType = "array";
+            ArrayProperty ap = (ArrayProperty) p;
+            if (Boolean.TRUE.equals(ap.getUniqueItems())) {
+                property.containerType = "set";
+            } else {
+                property.containerType = "array";
+            }
             property.baseType = getSwaggerType(p);
             if (p.getXml() != null) {
                 property.isXmlWrapped = p.getXml().getWrapped() == null ? false : p.getXml().getWrapped();
@@ -1865,7 +1879,6 @@ public class DefaultCodegen {
                 property.xmlName = p.getXml().getName();
             }
             // handle inner property
-            ArrayProperty ap = (ArrayProperty) p;
             property.maxItems = ap.getMaxItems();
             property.minItems = ap.getMinItems();
             String itemName = (String) p.getVendorExtensions().get("x-item-name");

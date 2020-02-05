@@ -117,6 +117,38 @@ public class JavaModelTest {
         Assert.assertTrue(property.isContainer);
     }
 
+    @Test(description = "convert a model with set property")
+    public void setPropertyTest() {
+        final ArrayProperty urls = new ArrayProperty()
+            .items(new StringProperty());
+        urls.setUniqueItems(true);
+        final Model model = new ModelImpl()
+                .description("a sample model")
+                .property("id", new LongProperty())
+                .property("urls", urls)
+                .required("id");
+        final DefaultCodegen codegen = new JavaClientCodegen();
+        final CodegenModel cm = codegen.fromModel("sample", model);
+
+        Assert.assertEquals(cm.name, "sample");
+        Assert.assertEquals(cm.classname, "Sample");
+        Assert.assertEquals(cm.description, "a sample model");
+        Assert.assertEquals(cm.vars.size(), 2);
+
+        final CodegenProperty property = cm.vars.get(1);
+        Assert.assertEquals(property.baseName, "urls");
+        Assert.assertEquals(property.getter, "getUrls");
+        Assert.assertEquals(property.setter, "setUrls");
+        Assert.assertEquals(property.datatype, "Set<String>");
+        Assert.assertEquals(property.name, "urls");
+        Assert.assertEquals(property.defaultValue, "new HashSet<String>()");
+        Assert.assertEquals(property.baseType, "Set");
+        Assert.assertEquals(property.containerType, "set");
+        Assert.assertFalse(property.required);
+        Assert.assertTrue(property.isContainer);
+    }
+
+
     @Test(description = "convert a model with a map property")
     public void mapPropertyTest() {
         final Model model = new ModelImpl()
@@ -327,6 +359,24 @@ public class JavaModelTest {
         Assert.assertEquals(cm.parent, "ArrayList<Children>");
         Assert.assertEquals(cm.imports.size(), 4);
         Assert.assertEquals(Sets.intersection(cm.imports, Sets.newHashSet("ApiModel", "List", "ArrayList", "Children")).size(), 4);
+    }
+
+    @Test(description = "convert an array model")
+    public void arraySetModelTest() {
+        final Model model = new ArrayModel()
+            .description("an array model")
+            .uniqueItems(true)
+            .items(new RefProperty("#/definitions/Children"));
+        final DefaultCodegen codegen = new JavaClientCodegen();
+        final CodegenModel cm = codegen.fromModel("sample", model);
+
+        Assert.assertEquals(cm.name, "sample");
+        Assert.assertEquals(cm.classname, "Sample");
+        Assert.assertEquals(cm.description, "an array model");
+        Assert.assertEquals(cm.vars.size(), 0);
+        Assert.assertEquals(cm.parent, "HashSet<Children>");
+        Assert.assertEquals(cm.imports.size(), 4);
+        Assert.assertEquals(Sets.intersection(cm.imports, Sets.newHashSet("ApiModel", "Set", "HashSet", "Children")).size(), 4);
     }
 
     @Test(description = "convert an map model")

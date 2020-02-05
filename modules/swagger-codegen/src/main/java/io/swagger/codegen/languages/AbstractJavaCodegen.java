@@ -133,6 +133,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         );
         instantiationTypes.put("array", "ArrayList");
         instantiationTypes.put("map", "HashMap");
+        instantiationTypes.put("set", "HashSet");
         typeMapping.put("date", "Date");
         typeMapping.put("file", "File");
 
@@ -354,9 +355,11 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         additionalProperties.put("modelDocPath", modelDocPath);
 
         importMapping.put("List", "java.util.List");
+        importMapping.put("Set", "java.util.Set");
 
         if (fullJavaUtil) {
             typeMapping.put("array", "java.util.List");
+            typeMapping.put("set", "java.util.Set");
             typeMapping.put("map", "java.util.Map");
             typeMapping.put("DateTime", "java.util.Date");
             typeMapping.put("UUID", "java.util.UUID");
@@ -372,6 +375,7 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
             importMapping.remove("UUID");
             instantiationTypes.put("array", "java.util.ArrayList");
             instantiationTypes.put("map", "java.util.HashMap");
+            instantiationTypes.put("set", "java.util.HashSet");
         }
 
         this.sanitizeConfig();
@@ -684,10 +688,18 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         if (p instanceof ArrayProperty) {
             final ArrayProperty ap = (ArrayProperty) p;
             final String pattern;
-            if (fullJavaUtil) {
-                pattern = "new java.util.ArrayList<%s>()";
+            if (Boolean.TRUE.equals(ap.getUniqueItems())) {
+                if (fullJavaUtil) {
+                    pattern = "new java.util.HashSet<%s>()";
+                } else {
+                    pattern = "new HashSet<%s>()";
+                }
             } else {
-                pattern = "new ArrayList<%s>()";
+                if (fullJavaUtil) {
+                    pattern = "new java.util.ArrayList<%s>()";
+                } else {
+                    pattern = "new ArrayList<%s>()";
+                }
             }
             if (ap.getItems() == null) {
                 return null;
@@ -863,6 +875,12 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         swaggerType = getAlias(swaggerType);
 
         // don't apply renaming on types from the typeMapping
+        if (p instanceof ArrayProperty) {
+            ArrayProperty ap = ((ArrayProperty) p);
+            if (Boolean.TRUE.equals(ap.getUniqueItems())) {
+                return typeMapping.get("set");
+            }
+        }
         if (typeMapping.containsKey(swaggerType)) {
             return typeMapping.get(swaggerType);
         }
@@ -926,6 +944,8 @@ public abstract class AbstractJavaCodegen extends DefaultCodegen implements Code
         if (!fullJavaUtil) {
             if ("array".equals(property.containerType)) {
                 model.imports.add("ArrayList");
+            } else if ("set".equals(property.containerType)) {
+                model.imports.add("HashSet");
             } else if ("map".equals(property.containerType)) {
                 model.imports.add("HashMap");
             }
